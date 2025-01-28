@@ -47,7 +47,7 @@ export default function WorkspaceMembers({ module, workspaceId }) {
     socket.on("memberAdded", (data) => {
       console.log("Member added", data);
 
-      const updatedMembers = [...members, data];
+      const updatedMembers = [...members, data.member];
       dispatch(setMembers(updatedMembers));
     });
 
