@@ -6,10 +6,19 @@ import { Trash2 } from "lucide-react";
 import { useDispatch } from "react-redux";
 import useCheckUserRole from "../../hooks/useCheckUserRole";
 import Cookies from "js-cookie";
+import { useEffect } from "react";
 
 export default function DeleteBoard({ workspaceId, boardId }) {
   const dispatch = useDispatch();
   const { isAdmin } = useCheckUserRole(Cookies.get("userId"), workspaceId);
+
+  useEffect(() => {
+    socket.on("boardRemoved", (data) => {
+      for (const boardId of data) {
+        dispatch(removeBoard(boardId));
+      }
+    });
+  }, [dispatch]);
 
   const handleDelete = (event) => {
     event.stopPropagation();
@@ -18,10 +27,6 @@ export default function DeleteBoard({ workspaceId, boardId }) {
       if (!response) {
         console.error("Error deleting board.");
         return;
-      }
-
-      for (const boardId of response) {
-        dispatch(removeBoard(boardId));
       }
     });
   };

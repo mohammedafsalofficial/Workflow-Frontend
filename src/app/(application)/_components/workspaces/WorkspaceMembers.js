@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2, ArrowUpRight, ExternalLink } from "lucide-react";
 import { setMembers } from "@/redux/feautres/workspaceSlice";
 import { useDispatch, useSelector } from "react-redux";
 import Cookies from "js-cookie";
-import { workflowBackend } from "@/app/_utils/api/axiosConfig";
 import Link from "next/link";
 import { groupMembers } from "@/app/_utils/helpers/helper";
 import {
@@ -13,15 +12,61 @@ import {
   appButtonColors,
   appTextColors,
 } from "@/app/_utils/constants/colors";
+import useCheckUserRole from "../../hooks/useCheckUserRole";
+import { socket } from "@/app/_utils/webSocket/webSocketConfig";
 
-export default function WorkspaceMembers({
-  module,
-  workspaceId,
-  members,
-  isAdmin,
-}) {
+export default function WorkspaceMembers({ module, workspaceId }) {
+  const { members } = useSelector((state) => state.workspace);
   const [activeTab, setActiveTab] = useState("admin");
   const dispatch = useDispatch();
+  const { isAdmin } = useCheckUserRole(Cookies.get("userId"), workspaceId);
+
+  console.log(members);
+
+  useEffect(() => {
+    socket.on("memberPromotedToAdmin", (data) => {
+      console.log("Member promoted to admin", data);
+
+      const updatedMembers = members.map((member) =>
+        member.userId === data.userId ? { ...member, role: "admin" } : member
+      );
+
+      dispatch(setMembers(updatedMembers));
+    });
+
+    socket.on("adminDePromotedToMember", (data) => {
+      console.log("Admin depromoted to member", data);
+
+      const updatedMembers = members.map((member) =>
+        member.userId === data.userId ? { ...member, role: "member" } : member
+      );
+
+      dispatch(setMembers(updatedMembers));
+    });
+
+    socket.on("memberAdded", (data) => {
+      console.log("Member added", data);
+
+      const updatedMembers = [...members, data];
+      dispatch(setMembers(updatedMembers));
+    });
+
+    socket.on("memberRemoved", (data) => {
+      console.log("Member removed", data);
+
+      const updatedMembers = members.filter(
+        (member) => member.userId !== data.userId
+      );
+      dispatch(setMembers(updatedMembers));
+    });
+
+    return () => {
+      socket.off("memberPromotedToAdmin");
+      socket.off("adminDePromotedToMember");
+      socket.off("memberAdded");
+      socket.off("memberRemoved");
+    };
+  }, [dispatch, members]);
 
   const groupedMembers = groupMembers(members);
 
@@ -30,95 +75,27 @@ export default function WorkspaceMembers({
   const appButtonColor = appButtonColors[module];
 
   const handleMemberDelete = async (userId) => {
-    try {
-      const response = await workflowBackend.post(
-        "/users/removeMember",
-        {
-          workspaceId,
-          userId,
-          token: Cookies.get("authToken"),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${Cookies.get("authToken")}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        const updatedMembers = members.filter(
-          (member) => member.userId !== userId
-        );
-        dispatch(setMembers(updatedMembers));
+    socket.emit("removeMember", { workspaceId, userId }, (response) => {
+      if (!response) {
+        console.error("Error deleting member.");
       }
-    } catch (error) {
-      console.error("Error deleting member:", error);
-    }
+    });
   };
 
   const handlePromoteToAdmin = async (userId) => {
-    try {
-      const response = await workflowBackend.post(
-        "/users/promoteToAdmin",
-        {
-          workspaceId,
-          userId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${Cookies.get("authToken")}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        const updatedMembers = members.map((member) =>
-          member.userId === userId ? { ...member, role: "admin" } : member
-        );
-        dispatch(setMembers(updatedMembers));
+    socket.emit("promoteToAdmin", { workspaceId, userId }, (response) => {
+      if (!response) {
+        console.error("Error promoting member to admin.");
       }
-    } catch (error) {
-      console.error("Error promoting member to admin:", error);
-    }
+    });
   };
 
   const handleDepromoteAdmin = async (userId) => {
-    if (groupedMembers.admin.length === 1) {
-      if (groupedMembers.member.length === 0) {
-        alert(
-          "You cannot depromote the last admin if there are no other members in the workspace."
-        );
-        return;
-      } else {
-        alert("At least one admin is required. Make a member an admin.");
-        return;
+    socket.emit("dePromoteToMember", { workspaceId, userId }, (response) => {
+      if (!response) {
+        console.error("Error demoting admin.");
       }
-    }
-
-    try {
-      const response = await workflowBackend.post(
-        "/users/dePromoteToMember",
-        {
-          workspaceId,
-          userId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${Cookies.get("authToken")}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        const updatedMembers = members.map((member) =>
-          member.userId === userId ? { ...member, role: "member" } : member
-        );
-
-        dispatch(setMembers(updatedMembers));
-      }
-    } catch (error) {
-      console.error("Error depromoting admin:", error);
-    }
+    });
   };
 
   return (
@@ -172,15 +149,17 @@ export default function WorkspaceMembers({
                 </Link>
               )}
 
-              {/* {isAdmin && member.role === "admin" && (
-                <button
-                  onClick={() => handleDepromoteAdmin(member.userId)}
-                  className="text-base text-white bg-zinc-700 hover:bg-zinc-800 p-2 rounded-lg transition-colors duration-200 flex items-center"
-                >
-                  <span>Depromote</span>
-                  <ArrowUpRight size={20} />
-                </button>
-              )} */}
+              {isAdmin &&
+                member.role === "admin" &&
+                member.userId !== Cookies.get("userId") && (
+                  <button
+                    onClick={() => handleDepromoteAdmin(member.userId)}
+                    className="text-base text-white bg-zinc-700 hover:bg-zinc-800 p-2 rounded-lg transition-colors duration-200 flex items-center"
+                  >
+                    <span>Depromote</span>
+                    <ArrowUpRight size={20} />
+                  </button>
+                )}
 
               {isAdmin && member.role !== "admin" && (
                 <button

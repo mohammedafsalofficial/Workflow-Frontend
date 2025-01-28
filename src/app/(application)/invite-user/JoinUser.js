@@ -1,27 +1,16 @@
 "use client";
 
-import { workflowBackend } from "@/app/_utils/api/axiosConfig";
-import Cookies from "js-cookie";
+import { socket } from "@/app/_utils/webSocket/webSocketConfig";
 
 export default function JoinUser({ token }) {
   const handleJoinUser = async () => {
-    try {
-      const response = await workflowBackend.post(
-        "/users/addMember",
-        {
-          token,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${Cookies.get("authToken")}`,
-          },
-        }
-      );
+    socket.emit("addMember", { token }, (response) => {
+      if (!response) {
+        console.error("Error joining workspace.");
+      }
+    });
 
-      window.close();
-    } catch (error) {
-      console.error("Failed to join workspace:", error);
-    }
+    window.close();
   };
 
   return (

@@ -4,7 +4,7 @@ import { appButtonColors } from "@/app/_utils/constants/colors";
 import { socket } from "@/app/_utils/webSocket/webSocketConfig";
 import { addBoard } from "@/redux/feautres/workspaceSlice";
 import Cookies from "js-cookie";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 export default function CreateBoard({ module, workspaceId }) {
@@ -13,6 +13,24 @@ export default function CreateBoard({ module, workspaceId }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    socket.on("boardAdded", (data) => {
+      console.log("boardAdded: ", data);
+
+      for (const board of data) {
+        dispatch(addBoard(board));
+      }
+
+      setBoardName("");
+      setBoardType("");
+      setLoading(false);
+    });
+
+    return () => {
+      socket.off("boardAdded");
+    };
+  }, [dispatch]);
 
   const appButtonColor = appButtonColors[module];
 
@@ -44,13 +62,13 @@ export default function CreateBoard({ module, workspaceId }) {
 
         console.log(response);
 
-        for (const board of response) {
-          dispatch(addBoard(board));
-        }
+        // for (const board of response) {
+        //   dispatch(addBoard(board));
+        // }
 
-        setBoardName("");
-        setBoardType("");
-        setLoading(false);
+        // setBoardName("");
+        // setBoardType("");
+        // setLoading(false);
       }
     );
   };

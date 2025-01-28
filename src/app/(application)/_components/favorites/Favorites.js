@@ -7,6 +7,10 @@ import Cookies from "js-cookie";
 import { socket } from "@/app/_utils/webSocket/webSocketConfig";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  addBoardToFavorites,
+  addWorkspaceToFavorites,
+  removeBoardFromFavorites,
+  removeWorkspaceFromFavorites,
   setFavoriteBoards,
   setFavoriteWorkspaces,
 } from "@/redux/feautres/favoritesSlice";
@@ -31,8 +35,30 @@ export default function FavoriteWorkspacesAndBoards({ module }) {
         dispatch(setFavoriteBoards(response.boards));
       }
     );
+
+    socket.on("addFavouriteWorkspace", (data) => {
+      dispatch(addWorkspaceToFavorites(data));
+    });
+
+    socket.on("removeFavouriteWorkspace", (data) => {
+      dispatch(removeWorkspaceFromFavorites(data.workspaceId));
+    });
+
+    socket.on("addBoardToFavourite", (data) => {
+      dispatch(addBoardToFavorites(data.board));
+    });
+
+    socket.on("removeBoardFromFavourite", (data) => {
+      dispatch(removeBoardFromFavorites(data.boardId));
+    });
+
+    return () => {
+      socket.off("addBoardToFavourite");
+      socket.off("removeBoardFromFavourite");
+    };
   }, [module, dispatch]);
 
+  console.log(favoriteWorkspaces);
   return (
     <div className="p-6 rounded-lg shadow-md">
       <FavoriteWorkspaces module={module} workspaces={favoriteWorkspaces} />

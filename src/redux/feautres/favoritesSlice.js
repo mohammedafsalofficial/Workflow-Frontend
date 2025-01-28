@@ -15,6 +15,14 @@ const favoritesSlice = createSlice({
     setFavoriteBoards: (state, action) => {
       state.favoriteBoards = action.payload;
     },
+    addWorkspaceToFavorites: (state, action) => {
+      state.favoriteWorkspaces.push(action.payload);
+    },
+    removeWorkspaceFromFavorites: (state, action) => {
+      state.favoriteWorkspaces = state.favoriteWorkspaces.filter(
+        (workspace) => workspace.workspaceId !== action.payload
+      );
+    },
     addBoardToFavorites: (state, action) => {
       state.favoriteBoards.push(action.payload);
     },
@@ -29,6 +37,8 @@ const favoritesSlice = createSlice({
 export const {
   setFavoriteBoards,
   setFavoriteWorkspaces,
+  addWorkspaceToFavorites,
+  removeWorkspaceFromFavorites,
   addBoardToFavorites,
   removeBoardFromFavorites,
 } = favoritesSlice.actions;

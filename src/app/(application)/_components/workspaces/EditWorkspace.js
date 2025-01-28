@@ -8,7 +8,7 @@ import {
   DialogTitle,
   TextField,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { socket } from "@/app/_utils/webSocket/webSocketConfig";
 import { deleteWorkspace } from "@/redux/feautres/userDetailsSlice";
 import { useDispatch } from "react-redux";
@@ -28,24 +28,42 @@ export default function EditWorkspace({
   const dispatch = useDispatch();
   const router = useRouter();
 
+  useEffect(() => {
+    socket.on("workspaceNameUpdated", (data) => {
+      console.log("workspaceNameUpdated: ", data);
+      dispatch(
+        updateWorkspaceData({
+          field: "workspaceName",
+          value: data.workspaceName,
+        })
+      );
+    });
+
+    socket.on("workspaceDeleted", (data) => {
+      console.log("workspaceDeleted: ", data);
+      if (data === workspaceId) {
+        router.push(`/${module}/view/dashboard`);
+      }
+    });
+
+    return () => {
+      socket.off("workspaceNameUpdated");
+    };
+  }, [dispatch, router, module, workspaceId]);
+
   const handleEditWorkspace = () => {
     socket.emit(
       "updateWorkspaceById",
       {
         id: workspaceId,
         updateData: { workspaceName: newWorkspaceName },
+        moduleId: Cookies.get("moduleId"),
       },
       (response) => {
         if (!response) {
           console.error("Error updating workspace.");
           return;
         }
-        dispatch(
-          updateWorkspaceData({
-            field: "workspaceName",
-            value: response.workspaceName,
-          })
-        );
       }
     );
 
@@ -78,7 +96,12 @@ export default function EditWorkspace({
   };
 
   return (
-    <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="sm" fullWidth>
+    <Dialog
+      open={isDialogOpen}
+      onClose={() => setIsDialogOpen(false)}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>Edit Workspace</DialogTitle>
       <DialogContent>
         <div className="flex flex-col gap-4">

@@ -52,7 +52,6 @@ export default function WorkspaceDisplay({ module, workspaceId }) {
       <div className="container mx-auto px-4 py-8 space-y-8">
         <section className="bg-white rounded-lg shadow-lg p-6 space-y-10">
           <WorkspaceMembers
-            isAdmin={isAdmin}
             module={module}
             workspaceId={workspaceId}
             members={members}

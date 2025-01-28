@@ -40,9 +40,20 @@ export default function WorkspaceHeader({
           console.error("Error checking if workspace is in favourite.");
           return;
         }
-        setIsFavorite(response.isFavourite);
       }
     );
+
+    socket.on("isWorkspaceInFavourite", (data) => {
+      setIsFavorite(data.isFavourite);
+    });
+
+    socket.on("addFavouriteWorkspace", (data) => {
+      setIsFavorite(true);
+    });
+
+    socket.on("removeFavouriteWorkspace", (data) => {
+      setIsFavorite(false);
+    });
   }, [workspaceId, module]);
 
   const toggleFavorite = () => {
@@ -56,7 +67,6 @@ export default function WorkspaceHeader({
           console.error("Error toggling favorite workspace.");
           return;
         }
-        console.log(response);
       }
     );
   };

@@ -11,6 +11,7 @@ import UserProfile from "./UserProfile";
 import { appBgColors, moduleColors } from "@/app/_utils/constants/colors";
 import { Avatar, Badge, InputBase } from "@mui/material";
 import NotificationsModal from "./NotificationsModal";
+import { socket } from "@/app/_utils/webSocket/webSocketConfig";
 
 export default function AppHeader({ module, userDetails }) {
   const [isModalOpen, setIsModalOpen] = useState(false);

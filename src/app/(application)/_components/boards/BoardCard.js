@@ -35,12 +35,30 @@ export default function BoardCard({
         console.error("Error checking if board is in favourite.");
         return;
       }
-
-      console.log(response);
-
-      setIsFavorite(response.isFavourite);
     });
-  }, [boardId, module]);
+
+    socket.on("isBoardInFavourite", (data) => {
+      setIsFavorite(data.isFavourite);
+    });
+
+    socket.on("removeBoardFromFavourite", (data) => {
+      setIsFavorite(false);
+      dispatch(removeBoardFromFavorites(data.boardId));
+    });
+
+    return () => {
+      socket.off("isBoardInFavourite");
+      socket.off("removeBoardFromFavourite");
+    };
+  }, [
+    dispatch,
+    module,
+    workspaceId,
+    workspaceName,
+    boardId,
+    boardName,
+    boardType,
+  ]);
 
   function toggleFavorite(event) {
     event.stopPropagation();
@@ -54,21 +72,6 @@ export default function BoardCard({
         if (!response) {
           console.error("Error toggling favorite board.");
           return;
-        }
-
-        if (isFavorite) {
-          console.log(boardId);
-          dispatch(removeBoardFromFavorites(boardId));
-        } else {
-          dispatch(
-            addBoardToFavorites({
-              workspaceId,
-              workspaceName,
-              boardId,
-              boardName,
-              type: boardType,
-            })
-          );
         }
       }
     );
